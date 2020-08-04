@@ -1,34 +1,32 @@
-const WebSocket=require('ws');
+const SocketIO=require('socket.io');
+//매개변수가 server이고 app.js에서 express웹 서버가 actual parameter이다. 
 module.exports=(server)=>{
-    //새로운 웹소켓 서버를 생성한다.
-    const wss=new WebSocket.Server({server});
-    //클라이언트가 접속을 했을때, 처리하는 이벤트를 처리한다. 
-    wss.on('connection',(ws,req)=>{
+    //이 부분은 socket.io패키지를 불러와서 익스프레스 서버와 연결한다. 
+    const io=SocketIO(server,{path:'/socket.io'});
+
+    //연결 후에는 이벤트 리스너를 붙여준다. connection이벤트는 클라이언트가 접속했을 때 발생하고 콜백으로 소켓 객체를 제공한다. 
+    io.on('connection',(socket)=>{
+        //socket.request로 요청 객체에 접근할 수 있다. socket.request.res로는 응답 객체에 접근할 수 있다. 
+        const req=socket.request;
         //사용자의 ip를 파악한다. 
         const ip=req.headers['x-forwarded-for']||req.connection.remoteAddress;
-        console.log('새로운 클라이언트 접속',ip);
-
-        //메시지를 받은 경우 메시지를 출력한다.
-        ws.on('message',(message)=>{
-            console.log(message);
+        console.log('새로운 클라이언트 접속',ip,socket.id);
+        
+        //socket에도 이벤트 리스너를 붙인다. 
+        socket.on('disconnect',()=>{
+            console.log('클라이언트 접속 해제', ip, socket.id);
+            clearInterval(socket.interval);
         })
-        //오류가 발생할 경우 오류를 출력한다.
-        ws.on('error',(error)=>{
-            console.log(error);
-        })
-        //접속이 종료되면 ws.interval을 0으로 만든다. 
-        ws.on('close',()=>{
-            console.log('클라이언트 접속 해제',ip);
-            clearInterval(ws.interval);
+        
+        socket.on('error',(error)=>{
+            console.error(error);
         })
 
-
-        const interval=setInterval(()=>{
-            //3초마다 연결된 모든 클라이언트에게 메시지를 보낸다. 
-            if(ws.readyState===ws.OPEN){
-                ws.send('서버에서 클라이언트로 메시지를 보냅니다.');
-            }
+        socket.on('reply',(data)=>{
+            console.log(data);
+        })
+        socket.interval=setInterval(()=>{
+           socket.emit('news','Hello Socket.IO');
         },3000);
-        ws.interval=interval;
     });
 };
