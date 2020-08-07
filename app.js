@@ -8,7 +8,10 @@ require('dotenv').config();
 
 const webSocket=require('./socket');
 const indexRouter=require('./routes');
+const connect=require("./scheams");
+
 const app=express();
+connect();
 app.set('views', path.join(__dirname,'views'));
 app.set('view engine','pug');
 app.set('port',process.env.PORT||8005);
